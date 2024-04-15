@@ -1,7 +1,10 @@
 use crate::curve::scalar_field::Scalar;
-use crate::curve::{curve::{Point, WeierstrassPoint}, GFp, GFp5};
+use crate::curve::{
+    curve::{Point, WeierstrassPoint},
+    GFp, GFp5,
+};
 use crate::gadgets::base_field::{CircuitBuilderGFp5, QuinticExtensionTarget};
-use plonky2::field::types::Field; 
+use plonky2::field::types::Field;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::target::BoolTarget;
 use plonky2::iop::target::Target;
@@ -33,15 +36,26 @@ pub trait CircuitBuilderEcGFp5 {
     fn curve_double(&mut self, a: CurveTarget) -> CurveTarget;
 
     fn precompute_window(&mut self, a: CurveTarget, window_bits: usize) -> Vec<CurveTarget>;
-    fn curve_scalar_mul(&mut self, a: CurveTarget, scalar: &NonNativeTarget<Scalar>) -> CurveTarget;
+    fn curve_scalar_mul(&mut self, a: CurveTarget, scalar: &NonNativeTarget<Scalar>)
+        -> CurveTarget;
 
     fn precompute_window_const(&mut self, point: Point, window_bits: usize) -> Vec<CurveTarget>;
-    fn curve_scalar_mul_const(&mut self, point: Point, scalar: &NonNativeTarget<Scalar>) -> CurveTarget;
+    fn curve_scalar_mul_const(
+        &mut self,
+        point: Point,
+        scalar: &NonNativeTarget<Scalar>,
+    ) -> CurveTarget;
 
     fn curve_encode_to_quintic_ext(&mut self, a: CurveTarget) -> QuinticExtensionTarget;
     fn curve_decode_from_quintic_ext(&mut self, w: QuinticExtensionTarget) -> CurveTarget;
 
-    fn curve_muladd_2(&mut self, a: CurveTarget, b: CurveTarget, scalar_a: &NonNativeTarget<Scalar>, scalar_b: &NonNativeTarget<Scalar>) -> CurveTarget;
+    fn curve_muladd_2(
+        &mut self,
+        a: CurveTarget,
+        b: CurveTarget,
+        scalar_a: &NonNativeTarget<Scalar>,
+        scalar_b: &NonNativeTarget<Scalar>,
+    ) -> CurveTarget;
 }
 
 macro_rules! impl_circuit_builder_for_extension_degree {
@@ -78,11 +92,7 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 self.curve_constant(WeierstrassPoint::GENERATOR)
             }
 
-            fn curve_eq(
-                &mut self,
-                a: CurveTarget,
-                b: CurveTarget,
-            ) -> BoolTarget {
+            fn curve_eq(&mut self, a: CurveTarget, b: CurveTarget) -> BoolTarget {
                 let CurveTarget(([ax, ay], a_is_inf)) = a;
                 let CurveTarget(([bx, by], b_is_inf)) = b;
 
@@ -154,8 +164,10 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 let lambda_1_if_x_not_same = self.sub_quintic_ext(x2, x1);
                 let lambda_1_if_x_same = self.double_quintic_ext(y1);
 
-                let lambda_0 = self.select_quintic_ext(x_same, lambda_0_if_x_same, lambda_0_if_x_not_same);
-                let lambda_1 = self.select_quintic_ext(x_same, lambda_1_if_x_same, lambda_1_if_x_not_same);
+                let lambda_0 =
+                    self.select_quintic_ext(x_same, lambda_0_if_x_same, lambda_0_if_x_not_same);
+                let lambda_1 =
+                    self.select_quintic_ext(x_same, lambda_1_if_x_same, lambda_1_if_x_not_same);
                 let lambda = self.div_or_zero_quintic_ext(lambda_0, lambda_1);
 
                 let mut x3 = self.square_quintic_ext(lambda);
@@ -213,16 +225,18 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 CurveTarget(([x2, y2], is_inf))
             }
 
-            fn precompute_window(&mut self, a: CurveTarget, window_bits: usize) -> Vec<CurveTarget> {
+            fn precompute_window(
+                &mut self,
+                a: CurveTarget,
+                window_bits: usize,
+            ) -> Vec<CurveTarget> {
                 debug_assert!(window_bits > 1);
                 let mut multiples = vec![self.curve_zero()];
                 multiples.push(a);
                 multiples.push(self.curve_double(a));
-                
+
                 for _ in 3..(1 << window_bits) {
-                    multiples.push(
-                        self.curve_add(multiples.last().unwrap().clone(), a)
-                    );
+                    multiples.push(self.curve_add(multiples.last().unwrap().clone(), a));
                 }
 
                 multiples
@@ -251,8 +265,11 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 res
             }
 
-
-            fn precompute_window_const(&mut self, point: Point, window_bits: usize) -> Vec<CurveTarget> {
+            fn precompute_window_const(
+                &mut self,
+                point: Point,
+                window_bits: usize,
+            ) -> Vec<CurveTarget> {
                 let mut curr = point;
                 let mut multiples = vec![self.curve_zero()];
 
@@ -264,7 +281,11 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 multiples
             }
 
-            fn curve_scalar_mul_const(&mut self, point: Point, scalar: &NonNativeTarget<Scalar>, ) -> CurveTarget {
+            fn curve_scalar_mul_const(
+                &mut self,
+                point: Point,
+                scalar: &NonNativeTarget<Scalar>,
+            ) -> CurveTarget {
                 let window = self.precompute_window_const(point, 4);
                 let four_bit_limbs = self.split_nonnative_to_4_bit_limbs(&scalar);
 
@@ -333,7 +354,13 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 CurveTarget(([x, y], is_inf))
             }
 
-            fn curve_muladd_2(&mut self, a: CurveTarget, b: CurveTarget, scalar_a: &NonNativeTarget<Scalar>, scalar_b: &NonNativeTarget<Scalar>) -> CurveTarget {
+            fn curve_muladd_2(
+                &mut self,
+                a: CurveTarget,
+                b: CurveTarget,
+                scalar_a: &NonNativeTarget<Scalar>,
+                scalar_b: &NonNativeTarget<Scalar>,
+            ) -> CurveTarget {
                 let a_window = self.precompute_window(a, 4);
                 let a_four_bit_limbs = self.split_nonnative_to_4_bit_limbs(&scalar_a);
 
@@ -347,7 +374,12 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 let b_start = self.curve_random_access(b_four_bit_limbs[num_limbs - 1], &b_window);
                 let mut res = self.curve_add(a_start, b_start);
 
-                for (a_limb, b_limb) in a_four_bit_limbs.into_iter().zip(b_four_bit_limbs).rev().skip(1) {
+                for (a_limb, b_limb) in a_four_bit_limbs
+                    .into_iter()
+                    .zip(b_four_bit_limbs)
+                    .rev()
+                    .skip(1)
+                {
                     for _ in 0..4 {
                         res = self.curve_double(res);
                     }
@@ -369,27 +401,15 @@ impl_circuit_builder_for_extension_degree!(2);
 // impl_circuit_builder_for_extension_degree!(4);
 // impl_circuit_builder_for_extension_degree!(5);
 
-
 pub trait PartialWitnessCurve<F: RichField + Extendable<5>>: Witness<F> {
     fn get_curve_target(&self, target: CurveTarget) -> WeierstrassPoint;
-    fn get_curve_targets(
-        &self,
-        targets: &[CurveTarget],
-    ) -> Vec<WeierstrassPoint> {
+    fn get_curve_targets(&self, targets: &[CurveTarget]) -> Vec<WeierstrassPoint> {
         targets.iter().map(|&t| self.get_curve_target(t)).collect()
     }
-    
-    fn set_curve_target(
-        &mut self,
-        target: CurveTarget,
-        value: WeierstrassPoint,
-    );
 
-    fn set_curve_targets(
-        &mut self,
-        targets: &[CurveTarget],
-        values: &[WeierstrassPoint],
-    ) {
+    fn set_curve_target(&mut self, target: CurveTarget, value: WeierstrassPoint);
+
+    fn set_curve_targets(&mut self, targets: &[CurveTarget], values: &[WeierstrassPoint]) {
         for (&t, &v) in targets.iter().zip(values.iter()) {
             self.set_curve_target(t, v);
         }
@@ -405,11 +425,7 @@ impl<W: PartialWitnessQuinticExt<GFp>> PartialWitnessCurve<GFp> for W {
         WeierstrassPoint { x, y, is_inf }
     }
 
-    fn set_curve_target(
-        &mut self,
-        target: CurveTarget,
-        value: WeierstrassPoint,
-    ) {
+    fn set_curve_target(&mut self, target: CurveTarget, value: WeierstrassPoint) {
         let CurveTarget(([x, y], is_inf)) = target;
         self.set_quintic_ext_target(x, value.x);
         self.set_quintic_ext_target(y, value.y);
@@ -420,7 +436,14 @@ impl<W: PartialWitnessQuinticExt<GFp>> PartialWitnessCurve<GFp> for W {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use plonky2::{field::types::Sample, plonk::{config::{PoseidonGoldilocksConfig, GenericConfig}, circuit_data::CircuitConfig}, iop::witness::PartialWitness};
+    use plonky2::{
+        field::types::Sample,
+        iop::witness::PartialWitness,
+        plonk::{
+            circuit_data::CircuitConfig,
+            config::{GenericConfig, PoseidonGoldilocksConfig},
+        },
+    };
     use plonky2_ecdsa::gadgets::nonnative::CircuitBuilderNonNative;
     use rand::thread_rng;
 
@@ -447,8 +470,16 @@ mod tests {
         let p2 = builder.curve_constant(p2.to_weierstrass());
         let p3 = builder.curve_add(p1, p2);
         builder.register_curve_public_input(p3);
-        
+
         let circuit = builder.build::<C>();
+
+        let num_total_constraints = circuit
+            .common
+            .gates
+            .iter()
+            .map(|g| g.0.num_constraints())
+            .sum::<usize>();
+        println!("Number of constraints: {}", num_total_constraints);
 
         let mut pw = PartialWitness::new();
         pw.set_curve_target(p3, p3_expected.to_weierstrass());
@@ -474,8 +505,16 @@ mod tests {
         let p1 = builder.curve_constant(p1.to_weierstrass());
         let p2 = builder.curve_double(p1);
         builder.register_curve_public_input(p2);
-        
+
         let circuit = builder.build::<C>();
+
+        let num_total_constraints = circuit
+            .common
+            .gates
+            .iter()
+            .map(|g| g.0.num_constraints())
+            .sum::<usize>();
+        println!("Number of constraints: {}", num_total_constraints);
 
         let mut pw = PartialWitness::new();
         pw.set_curve_target(p2, p2_expected.to_weierstrass());
@@ -504,8 +543,16 @@ mod tests {
 
         let prod = builder.curve_scalar_mul(p, &s);
         builder.register_curve_public_input(prod);
-        
+
         let circuit = builder.build::<C>();
+
+        let num_total_constraints = circuit
+            .common
+            .gates
+            .iter()
+            .map(|g| g.0.num_constraints())
+            .sum::<usize>();
+        println!("Number of constraints: {}", num_total_constraints);
 
         let mut pw = PartialWitness::new();
         pw.set_curve_target(prod, prod_expected.to_weierstrass());
@@ -533,8 +580,16 @@ mod tests {
 
         let prod = builder.curve_scalar_mul_const(p, &s);
         builder.register_curve_public_input(prod);
-        
+
         let circuit = builder.build::<C>();
+
+        let num_total_constraints = circuit
+            .common
+            .gates
+            .iter()
+            .map(|g| g.0.num_constraints())
+            .sum::<usize>();
+        println!("Number of constraints: {}", num_total_constraints);
 
         let mut pw = PartialWitness::new();
         pw.set_curve_target(prod, prod_expected.to_weierstrass());
@@ -556,7 +611,7 @@ mod tests {
 
         let p = Point::sample(&mut rng);
         let w_expected = p.encode();
-        
+
         let p = builder.curve_constant(p.to_weierstrass());
         let w = builder.curve_encode_to_quintic_ext(p);
         builder.register_quintic_ext_public_input(w);
@@ -622,8 +677,16 @@ mod tests {
 
         let prod = builder.curve_muladd_2(p1, p2, &s1, &s2);
         builder.register_curve_public_input(prod);
-        
+
         let circuit = builder.build::<C>();
+
+        let num_total_constraints = circuit
+            .common
+            .gates
+            .iter()
+            .map(|g| g.0.num_constraints())
+            .sum::<usize>();
+        println!("Number of constraints: {}", num_total_constraints);
 
         let mut pw = PartialWitness::new();
         pw.set_curve_target(prod, prod_expected.to_weierstrass());
