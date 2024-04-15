@@ -10,8 +10,6 @@ use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2_ecdsa::gadgets::nonnative::NonNativeTarget;
 use plonky2_ecdsa::gadgets::split_nonnative::CircuitBuilderSplit;
 use plonky2_field::extension::Extendable;
-use plonky2_field::extension::quintic::QuinticExtension;
-use plonky2_field::goldilocks_field::GoldilocksField;
 
 use super::base_field::PartialWitnessQuinticExt;
 
@@ -366,10 +364,10 @@ macro_rules! impl_circuit_builder_for_extension_degree {
     };
 }
 
-impl_circuit_builder_for_extension_degree!(1);
+// impl_circuit_builder_for_extension_degree!(1);
 impl_circuit_builder_for_extension_degree!(2);
-impl_circuit_builder_for_extension_degree!(4);
-impl_circuit_builder_for_extension_degree!(5);
+// impl_circuit_builder_for_extension_degree!(4);
+// impl_circuit_builder_for_extension_degree!(5);
 
 
 pub trait PartialWitnessCurve<F: RichField + Extendable<5>>: Witness<F> {

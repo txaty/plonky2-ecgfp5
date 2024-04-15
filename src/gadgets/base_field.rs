@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use plonky2_ecdsa::gadgets::nonnative::NonNativeTarget;
 use plonky2_field::extension::quintic::QuinticExtension;
 use plonky2_field::goldilocks_field::GoldilocksField;
@@ -198,9 +197,9 @@ impl<W: Witness<F>, F: RichField + Extendable<5>> PartialWitnessQuinticExt<F> fo
     }
 }
 
-macro_rules! impl_circuit_builder_for_extension_degree {
-    ($degree:literal) => {
-        impl CircuitBuilderGFp5<GFp> for CircuitBuilder<GFp, $degree> {
+// macro_rules! impl_circuit_builder_for_extension_degree {
+//     ($degree:literal) => {
+        impl CircuitBuilderGFp5<GFp> for CircuitBuilder<GFp, 2> {
             fn add_virtual_quintic_ext_target(&mut self) -> QuinticExtensionTarget {
                 QuinticExtensionTarget::new([
                     self.add_virtual_target(),
@@ -789,13 +788,13 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 self.reduce::<Scalar>(&biguint)
             }
         }
-    };
-}
+//     };
+// }
 
-impl_circuit_builder_for_extension_degree!(1);
-impl_circuit_builder_for_extension_degree!(2);
-impl_circuit_builder_for_extension_degree!(4);
-impl_circuit_builder_for_extension_degree!(5);
+// impl_circuit_builder_for_extension_degree!(1);
+// impl_circuit_builder_for_extension_degree!(2);
+// impl_circuit_builder_for_extension_degree!(4);
+// impl_circuit_builder_for_extension_degree!(5);
 
 #[derive(Debug)]
 pub struct QuinticQuotientGenerator {

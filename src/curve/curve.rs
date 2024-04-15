@@ -4,7 +4,6 @@
 /// His implementation can be found here: https://github.com/pornin/ecgfp5
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use alloc::vec::Vec;
 use plonky2_field::extension::quintic::QuinticExtension;
 use plonky2_field::goldilocks_field::GoldilocksField;
 use plonky2_field::ops::Square;
