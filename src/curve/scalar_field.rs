@@ -3,19 +3,19 @@
 /// with some modifications to make it play more nicely with plonky2 primitives
 /// His implementation can be found here: https://github.com/pornin/ecgfp5
 use alloc::vec::Vec;
-use plonky2_field::extension::quintic::QuinticExtension;
-use rand::RngCore;
 use core::fmt::{self, Debug, Display, Formatter};
 use core::hash::{Hash, Hasher};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use plonky2_field::extension::quintic::QuinticExtension;
+use rand::RngCore;
 
 use itertools::Itertools;
 use num::bigint::BigUint;
 use num::One;
 use serde::{Deserialize, Serialize};
 
-use plonky2_field::types::{Field, PrimeField, Sample, PrimeField64};
+use plonky2_field::types::{Field, PrimeField, PrimeField64, Sample};
 
 use super::GFp5;
 
@@ -220,6 +220,14 @@ impl Field for Scalar {
     #[inline]
     fn from_noncanonical_u96(n: (u64, u32)) -> Self {
         Self([n.0, n.1 as u64, 0, 0, 0])
+    }
+
+    fn from_noncanonical_u64(n: u64) -> Self {
+        Self::from_canonical_u64(n)
+    }
+
+    fn from_noncanonical_i64(n: i64) -> Self {
+        Self::from_canonical_u64(n as u64)
     }
 }
 
@@ -458,9 +466,7 @@ impl Scalar {
 
     pub fn from_gfp5(x: GFp5) -> Self {
         let QuinticExtension(limbs) = x;
-        Self::from_noncanonical_biguint(
-            biguint_from_array(limbs.map(|l| l.to_canonical_u64()))
-        )
+        Self::from_noncanonical_biguint(biguint_from_array(limbs.map(|l| l.to_canonical_u64())))
     }
 
     /// Decode the provided byte slice into a scalar. The bytes are

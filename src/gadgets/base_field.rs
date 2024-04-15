@@ -8,10 +8,10 @@ use plonky2::iop::generator::{GeneratedValues, SimpleGenerator};
 use plonky2::iop::target::{BoolTarget, Target};
 use plonky2::iop::witness::{PartitionWitness, Witness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2_field::extension::{Extendable, FieldExtension};
-use plonky2_field::types::Field;
 use plonky2_ecdsa::gadgets::biguint::BigUintTarget;
 use plonky2_ecdsa::gadgets::nonnative::CircuitBuilderNonNative;
+use plonky2_field::extension::{Extendable, FieldExtension};
+use plonky2_field::types::Field;
 use plonky2_u32::gadgets::arithmetic_u32::U32Target;
 
 use crate::curve::base_field::SquareRoot;
@@ -136,7 +136,7 @@ pub trait CircuitBuilderGFp5<F: RichField + Extendable<5>> {
 
     fn encode_quintic_ext_as_scalar(
         &mut self,
-        x: QuinticExtensionTarget
+        x: QuinticExtensionTarget,
     ) -> NonNativeTarget<Scalar>;
 }
 
@@ -196,7 +196,6 @@ impl<W: Witness<F>, F: RichField + Extendable<5>> PartialWitnessQuinticExt<F> fo
         self.set_target(t3, v3);
         self.set_target(t4, v4);
     }
-
 }
 
 macro_rules! impl_circuit_builder_for_extension_degree {
@@ -332,10 +331,7 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 ])
             }
 
-            fn double_quintic_ext(
-                &mut self,
-                a: QuinticExtensionTarget,
-            ) -> QuinticExtensionTarget {
+            fn double_quintic_ext(&mut self, a: QuinticExtensionTarget) -> QuinticExtensionTarget {
                 let QuinticExtensionTarget([a0, a1, a2, a3, a4]) = a;
                 QuinticExtensionTarget::new([
                     self.mul_const(GFp::TWO, a0),
@@ -346,10 +342,7 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 ])
             }
 
-            fn triple_quintic_ext(
-                &mut self,
-                a: QuinticExtensionTarget,
-            ) -> QuinticExtensionTarget {
+            fn triple_quintic_ext(&mut self, a: QuinticExtensionTarget) -> QuinticExtensionTarget {
                 let QuinticExtensionTarget([a0, a1, a2, a3, a4]) = a;
                 QuinticExtensionTarget::new([
                     self.mul_const(THREE, a0),
@@ -464,7 +457,6 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 c: GFp5,
                 a: QuinticExtensionTarget,
             ) -> QuinticExtensionTarget {
-
                 let QuinticExtensionTarget([a0, a1, a2, a3, a4]) = a;
                 let QuinticExtension([c0, c1, c2, c3, c4]) = c;
                 let one = self.one();
@@ -521,7 +513,7 @@ macro_rules! impl_circuit_builder_for_extension_degree {
 
                 let quotient_times_denominator = self.mul_quintic_ext(quotient, b);
                 let zero_if_prod_is_a = self.sub_quintic_ext(quotient_times_denominator, a);
-                
+
                 // check zero
                 // we can do the multiplication limb-wise here, as their product is zero
                 // iff one of them is all zeros
@@ -724,7 +716,7 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                 let mut c1 = self.arithmetic(THREE, GFp::ZERO, a3, a3, zero);
                 c1 = self.arithmetic(GFp::TWO, GFp::ONE, a0, a1, c1);
                 c1 = self.arithmetic(SIX, GFp::ONE, a2, a4, c1);
-                
+
                 let mut c2 = self.square(a1);
                 c2 = self.arithmetic(GFp::TWO, GFp::ONE, a0, a2, c2);
                 c2 = self.arithmetic(SIX, GFp::ONE, a3, a4, c2);
@@ -778,10 +770,11 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                     self.split_le_base::<2>(c2, 64),
                     self.split_le_base::<2>(c3, 64),
                     self.split_le_base::<2>(c4, 64),
-                ].concat();
+                ]
+                .concat();
 
-                let limbs_u32 = bits.
-                    chunks(32)
+                let limbs_u32 = bits
+                    .chunks(32)
                     .map(|chunk| {
                         let mut terms = vec![];
                         for (i, term) in chunk.iter().enumerate() {
@@ -789,8 +782,9 @@ macro_rules! impl_circuit_builder_for_extension_degree {
                         }
 
                         U32Target(self.add_many(terms))
-                    }).collect::<Vec<_>>();
-                
+                    })
+                    .collect::<Vec<_>>();
+
                 let biguint = BigUintTarget { limbs: limbs_u32 };
                 self.reduce::<Scalar>(&biguint)
             }
@@ -824,7 +818,31 @@ impl QuinticQuotientGenerator {
     }
 }
 
-impl<F: RichField + Extendable<5>> SimpleGenerator<F> for QuinticQuotientGenerator {
+impl<F: RichField + Extendable<5> + Extendable<2>> SimpleGenerator<F, 2>
+    for QuinticQuotientGenerator
+{
+    fn id(&self) -> String {
+        "QuinticQuotientGenerator".to_string()
+    }
+
+    fn serialize(
+        &self,
+        _dst: &mut Vec<u8>,
+        _common_data: &plonky2::plonk::circuit_data::CommonCircuitData<F, 2>,
+    ) -> plonky2::util::serialization::IoResult<()> {
+        todo!();
+    }
+
+    fn deserialize(
+        _src: &mut plonky2::util::serialization::Buffer,
+        _common_data: &plonky2::plonk::circuit_data::CommonCircuitData<F, 2>,
+    ) -> plonky2::util::serialization::IoResult<Self>
+    where
+        Self: Sized,
+    {
+        todo!();
+    }
+
     fn dependencies(&self) -> Vec<Target> {
         let mut deps = self.numerator.to_target_array().to_vec();
         deps.extend(self.denominator.to_target_array());
@@ -874,7 +892,29 @@ impl QuinticSqrtGenerator {
     }
 }
 
-impl SimpleGenerator<GFp> for QuinticSqrtGenerator {
+impl SimpleGenerator<GFp, 2> for QuinticSqrtGenerator {
+    fn id(&self) -> String {
+        "QuinticSqrtGenerator".to_string()
+    }
+
+    fn serialize(
+        &self,
+        _dst: &mut Vec<u8>,
+        _common_data: &plonky2::plonk::circuit_data::CommonCircuitData<GFp, 2>,
+    ) -> plonky2::util::serialization::IoResult<()> {
+        todo!();
+    }
+
+    fn deserialize(
+        _src: &mut plonky2::util::serialization::Buffer,
+        _common_data: &plonky2::plonk::circuit_data::CommonCircuitData<GFp, 2>,
+    ) -> plonky2::util::serialization::IoResult<Self>
+    where
+        Self: Sized,
+    {
+        todo!();
+    }
+
     fn dependencies(&self) -> Vec<Target> {
         self.x.to_target_array().to_vec()
     }
@@ -1200,7 +1240,7 @@ mod tests {
         builder.register_public_input(legendre_sym);
 
         let circuit = builder.build::<C>();
-        
+
         let mut pw = PartialWitness::new();
         pw.set_target(legendre_sym, GFp::ONE);
 
@@ -1209,7 +1249,7 @@ mod tests {
 
         // legendre sym == -1
         let mut builder = CircuitBuilder::<F, D>::new(config.clone());
-        
+
         let non_square = gfp5_random_non_square();
         let non_square = builder.constant_quintic_ext(non_square);
         let legendre_sym = builder.legendre_sym_quintic_ext(non_square);
@@ -1253,10 +1293,9 @@ mod tests {
         let x = GFp5::sample(&mut rng);
 
         let QuinticExtension(limbs) = x;
-        let encoded_expected = Scalar::from_noncanonical_biguint(
-            biguint_from_array(limbs.map(|l| l.to_canonical_u64()))
-        );
-
+        let encoded_expected = Scalar::from_noncanonical_biguint(biguint_from_array(
+            limbs.map(|l| l.to_canonical_u64()),
+        ));
 
         let x = builder.constant_quintic_ext(x);
         let encoded = builder.encode_quintic_ext_as_scalar(x);
